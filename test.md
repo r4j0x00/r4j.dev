@@ -164,13 +164,11 @@ We can look at the definition of tcache_entry here - https://elixir.bootlin.com/
 typedef struct tcache_entry
 {
   struct tcache_entry *next;
-  /* This field exists to detect double frees.  */
   struct tcache_perthread_struct *key;
 } tcache_entry;
 ```
 
-It uses the tcache_perthread_struct struct to detect double frees.
-In short, when a chunk is freed it checks if its key is equal to the tcache_perthread_struct of the corresponding tcache size and then iterates over the tcache bin to check if it exists already.
+It uses the tcache_perthread_struct struct to detect double frees. When a chunk is freed, the key value is set to the address of tcache_perthread_struct for that size. When a chunk is returned from the tcache list, the key value is cleared. Thus, it would be very unusual to have the address of tcache_perthread_struct set for the key position when the chunk is freed. So, if the tcache_perthread_struct address is found there, it iterates over the tcache list for that size and checks for a double free.
 If it does, it calls double free detected....
 
 Now, one way would be to somehow nullify the key field of the chunk which is already freed. But this is not possible in our case.
